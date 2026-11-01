@@ -388,6 +388,26 @@
         }
     }
 
+    function renderCategoryGrid(id, items, category) {
+    const expanded = expandedSections.has(category);
+
+    renderGrid(
+        id,
+        expanded ? items : items.slice(0, 8)
+    );
+
+    const button = document.querySelector(
+        `[data-show-all="${category}"]`
+    );
+
+    if (button) {
+        button.classList.toggle("hidden", items.length <= 8);
+        button.textContent = expanded
+            ? "Show less ↑"
+            : "View all →";
+    }
+    }
+    
     /* -----------------------------
        HERO CAROUSEL
     ----------------------------- */
