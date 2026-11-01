@@ -781,6 +781,20 @@
 
     document.addEventListener("click", event => {
 
+      const showAll = event.target.closest("[data-show-all]");
+
+if (showAll) {
+    const category = showAll.dataset.showAll;
+
+    if (expandedSections.has(category)) {
+        expandedSections.delete(category);
+    } else {
+        expandedSections.add(category);
+    }
+
+    render();
+    return;
+}
         const close = event.target.closest("[data-close]");
 
         if (close) {
