@@ -348,29 +348,7 @@
             return !search || searchable.includes(search);
         });
 
-        renderGrid(
-            "trendingGrid",
-            visible.filter(item =>
-                item.category !== "Marvel" &&
-                item.category !== "Anime" &&
-                item.category !== "Series"
-            ).slice(0, 12)
-        );
-
-        renderGrid(
-            "marvelGrid",
-            visible.filter(item => item.category === "Marvel")
-        );
-
-        renderGrid(
-            "animeGrid",
-            visible.filter(item => item.category === "Anime")
-        );
-
-        renderGrid(
-            "seriesGrid",
-            visible.filter(item => item.category === "Series")
-        );
+        render
 
         const list = getList();
 
