@@ -102,6 +102,7 @@
     let heroIndex = 0;
     let heroTimer = null;
     let authMode = "login";
+    const expandedSections = new Set();
 
     /* -----------------------------
        LOCAL STORAGE
