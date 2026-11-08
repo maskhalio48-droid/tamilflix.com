@@ -53,3 +53,8 @@ async function authSubmit(ev) {
     button.textContent = "Continue";
   }
 }
+const authForm = $("authForm");
+
+if (authForm) {
+  authForm.addEventListener("submit", authSubmit);
+      }
