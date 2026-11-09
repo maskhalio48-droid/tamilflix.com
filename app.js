@@ -504,26 +504,43 @@
     }
   }
 
-  async function updateAuthUI() {
-    if (!client) return;
+async function checkAdmin() {
+  const button = $("adminBtn");
 
-    const { data, error } = await client.auth.getUser();
-    currentUser = error ? null : data?.user || null;
-
-    const loggedIn = !!currentUser;
-
-    if ($("userEmail")) {
-      $("userEmail").textContent = currentUser?.email || "";
-      $("userEmail").classList.toggle("hidden", !loggedIn);
-    }
-
-    $("loginBtn")?.classList.toggle("hidden", loggedIn);
-    $("registerBtn")?.classList.toggle("hidden", loggedIn);
-    $("logoutBtn")?.classList.toggle("hidden", !loggedIn);
-
-    await checkAdmin();
+  if (!button || !client || !currentUser) {
+    button?.classList.add("hidden");
+    return;
   }
 
+  try {
+    console.log("Logged in email:", currentUser.email);
+    console.log("Logged in user ID:", currentUser.id);
+
+    const { data, error } = await client
+      .from("tamilflix_admins")
+      .select("user_id")
+      .eq("user_id", currentUser.id)
+      .maybeSingle();
+
+    console.log("Admin data:", data);
+    console.log("Admin error:", error);
+
+    if (error) {
+      console.error("Admin check failed:", error.message);
+    }
+
+    const isAdmin =
+      currentUser.email?.toLowerCase() === "jayantatilan@gmail.com" &&
+      !!data &&
+      !error;
+
+    button.classList.toggle("hidden", !isAdmin);
+
+  } catch (error) {
+    console.error("Admin error:", error);
+    button.classList.add("hidden");
+  }
+}
   async function logout() {
     if (!client) return;
 
