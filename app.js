@@ -1312,16 +1312,22 @@ function setupAdminTabs() {
             );
           });
 
-        [
+        const forms = [
           "movieForm",
           "showForm",
           "episodeForm",
           "manageForm"
-        ].forEach(id => {
-          $(id)?.classList.toggle(
-            "hidden",
-            id !== button.dataset.tab
-          );
+        ];
+
+        forms.forEach(id => {
+          const element = $(id);
+
+          if (element) {
+            element.classList.toggle(
+              "hidden",
+              id !== button.dataset.tab
+            );
+          }
         });
 
         if (button.dataset.tab === "manageForm") {
