@@ -769,9 +769,14 @@ async function checkAdmin() {
       await updateAuthUI();
       await loadContent();
 
-      client.auth.onAuthStateChange(() => {
-        setTimeout(() => updateAuthUI(), 0);
-      });
+      client.auth.onAuthStateChange((_event, session) => {
+  setTimeout(async () => {
+    currentUser = session?.user || null;
+
+    await updateAuthUI();
+    await checkAdmin();
+  }, 0);
+});
 
       console.log("Tamilflix initialized successfully.");
 
