@@ -128,7 +128,13 @@
       category: "movies"
     };
   }
-
+function normaliseShow(row) {
+  return {
+    ...row,
+    kind: "show",
+    category: row.category || "series"
+  };
+       }
   function normaliseShow(row) {
     return {
       ...row,
