@@ -156,6 +156,48 @@
       <input name="thumbnail_url" type="url" placeholder="Episode thumbnail URL">
       <input name="video_url" type="url" placeholder="Episode video URL" required>
       <button class="btn btn-primary" type="submit">Save Episode</button><p class="message"></p>
+    <div id="manageForm" class="admin-form hidden">
+
+  <h3>Manage Content</h3>
+
+  <label>Delete Movie</label>
+  <select id="deleteMovieSelect">
+    <option value="">Select a movie</option>
+  </select>
+  <button type="button" class="btn btn-primary"
+    id="deleteMovieBtn">
+    Delete Movie
+  </button>
+
+  <hr>
+
+  <label>Delete Show</label>
+  <select id="deleteShowSelect">
+    <option value="">Select a show</option>
+  </select>
+  <button type="button" class="btn btn-primary"
+    id="deleteShowBtn">
+    Delete Show
+  </button>
+
+  <hr>
+
+  <label>Delete Category</label>
+  <select id="deleteCategorySelect">
+    <option value="">Select category</option>
+    <option value="marvel">Marvel</option>
+    <option value="anime">Anime</option>
+    <option value="series">Series</option>
+    <option value="bigboss">Bigg Boss</option>
+  </select>
+  <button type="button" class="btn btn-primary"
+    id="deleteCategoryBtn">
+    Delete Category
+  </button>
+
+  <p id="deleteMessage" class="message"></p>
+
+ </div>
     </form>
   </div>
 </div>
