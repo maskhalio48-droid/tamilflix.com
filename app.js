@@ -19,42 +19,28 @@ async function authSubmit(ev) {
   message.textContent = "Connecting...";
 
   try {
-    let result;
+    const result = mode === "Register"
+      ? await client.auth.signUp({ email, password })
+      : await client.auth.signInWithPassword({ email, password });
+
+    if (result.error) throw result.error;
 
     if (mode === "Register") {
-      result = await client.auth.signUp({
-        email,
-        password
-      });
-    } else {
-      result = await client.auth.signInWithPassword({
-        email,
-        password
-      });
-    }
-
-    if (result.error) {
-      throw result.error;
-    }
-
-    if (mode === "Register") {
-      message.textContent =
-        "Account created. Check your email.";
+      message.textContent = "Account created. Check your email.";
     } else {
       message.textContent = "Login successful!";
       hideModal("authModal");
     }
-
   } catch (error) {
-    message.textContent =
-      error.message || "Something went wrong.";
+    message.textContent = error.message || "Something went wrong.";
   } finally {
     button.disabled = false;
     button.textContent = "Continue";
   }
 }
+
 const authForm = $("authForm");
 
 if (authForm) {
   authForm.addEventListener("submit", authSubmit);
-      }
+}
