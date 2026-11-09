@@ -1,4 +1,10 @@
-/* TAMILFLIX - APP.JS */
+
+/* ==========================================
+   TAMILFLIX - APP.JS
+   PART 1 / 3
+   CORE + MOVIES + SHOWS + PLAYER
+========================================== */
+
 (() => {
   "use strict";
 
@@ -8,7 +14,8 @@
     movies: "movies",
     shows: "tamilflix_shows",
     episodes: "tamilflix_episodes",
-    admins: "tamilflix_admins"
+    admins: "tamilflix_admins",
+    requests: "movie_requests"
   };
 
   const LIST_KEY = "tamilflix_my_list";
@@ -18,24 +25,33 @@
   let shows = [];
   let currentUser = null;
   let heroIndex = 0;
+
   const expanded = {};
+
+  /* HELPERS */
 
   function safeURL(value) {
     if (!value) return "";
+
     try {
       const url = new URL(value, location.href);
+
       return ["http:", "https:"].includes(url.protocol)
-        ? url.href : "";
+        ? url.href
+        : "";
     } catch {
       return "";
     }
   }
 
   function escapeHTML(value) {
-    return String(value ?? "").replace(/[&<>"']/g, c => ({
-      "&": "&amp;", "<": "&lt;", ">": "&gt;",
-      '"': "&quot;", "'": "&#39;"
-    })[c]);
+    return String(value ?? "").replace(/[&<>"']/g, char => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    })[char]);
   }
 
   function showModal(id) {
@@ -47,6 +63,7 @@
 
     if (id === "playerModal") {
       const video = $("videoPlayer");
+
       if (video) {
         video.pause();
         video.removeAttribute("src");
@@ -55,9 +72,14 @@
     }
   }
 
+  /* MY LIST */
+
   function getList() {
     try {
-      const list = JSON.parse(localStorage.getItem(LIST_KEY) || "[]");
+      const list = JSON.parse(
+        localStorage.getItem(LIST_KEY) || "[]"
+      );
+
       return Array.isArray(list) ? list : [];
     } catch {
       return [];
@@ -73,8 +95,8 @@
     const id = parts.join(":");
 
     return kind === "show"
-      ? shows.find(x => String(x.id) === id)
-      : movies.find(x => String(x.id) === id);
+      ? shows.find(item => String(item.id) === id)
+      : movies.find(item => String(item.id) === id);
   }
 
   function isSaved(item) {
@@ -85,92 +107,143 @@
     const key = itemKey(item);
     const list = getList();
 
+    const updated = list.includes(key)
+      ? list.filter(value => value !== key)
+      : [...list, key];
+
     localStorage.setItem(
       LIST_KEY,
-      JSON.stringify(
-        list.includes(key)
-          ? list.filter(x => x !== key)
-          : [...list, key]
-      )
+      JSON.stringify(updated)
     );
 
     renderAll();
   }
 
+  /* NORMALISE DATA */
+
   function normaliseMovie(row) {
-    return { ...row, kind: "movie", category: "movies" };
+    return {
+      ...row,
+      kind: "movie",
+      category: "movies"
+    };
   }
 
   function normaliseShow(row) {
     return {
       ...row,
       kind: "show",
-      category: String(row.category || "series").toLowerCase()
+      category: String(
+        row.category || "series"
+      ).toLowerCase()
     };
   }
 
-  /* MOVIE CARD - MATCHES style.css */
+  /* MOVIE CARD */
 
   function card(item) {
-    const poster = safeURL(item.poster_url || item.thumbnail_url);
-    const title = escapeHTML(item.title || "Untitled");
-    const year = item.year ? escapeHTML(item.year) : "";
-    const language = escapeHTML(item.language || "");
-    const rating = item.rating !== null &&
-      item.rating !== undefined && item.rating !== ""
-      ? `<span class="rating">★ ${escapeHTML(item.rating)}</span>`
+    const poster = safeURL(
+      item.poster_url || item.thumbnail_url
+    );
+
+    const title = escapeHTML(
+      item.title || "Untitled"
+    );
+
+    const year = item.year
+      ? escapeHTML(item.year)
       : "";
 
+    const language = escapeHTML(
+      item.language || ""
+    );
+
+    const rating =
+      item.rating !== null &&
+      item.rating !== undefined &&
+      item.rating !== ""
+        ? `<span class="rating">★ ${escapeHTML(item.rating)}</span>`
+        : "";
+
     const key = escapeHTML(itemKey(item));
+
     const image = poster
       ? `<img src="${escapeHTML(poster)}" alt="${title}" loading="lazy">`
       : `<div class="empty">Poster unavailable</div>`;
 
     return `
-      <article class="movie-card" data-item-key="${key}">
+      <article class="movie-card"
+        data-item-key="${key}">
+
         <div class="poster-wrap">
           ${image}
+
           <div class="card-actions">
-            <button class="round-btn" type="button"
-              data-open-item="${key}" aria-label="View ${title}">▶</button>
-            <button class="round-btn" type="button"
-              data-save-item="${key}" aria-label="My List">
+
+            <button class="round-btn"
+              type="button"
+              data-open-item="${key}"
+              aria-label="View ${title}">
+              ▶
+            </button>
+
+            <button class="round-btn"
+              type="button"
+              data-save-item="${key}"
+              aria-label="My List">
               ${isSaved(item) ? "♥" : "♡"}
             </button>
+
           </div>
         </div>
+
         <h3>${title}</h3>
+
         <div class="meta">
-          <span>${year}${year && language ? " · " : ""}${language}</span>
+          <span>
+            ${year}${year && language ? " · " : ""}${language}
+          </span>
           ${rating}
         </div>
+
       </article>
     `;
   }
 
+  /* CATEGORY GRID */
+
   function renderGrid(id, items, category) {
     const element = $(id);
+
     if (!element) return;
 
-    const query = ($("searchInput")?.value || "")
-      .trim().toLowerCase();
+    const query = (
+      $("searchInput")?.value || ""
+    ).trim().toLowerCase();
 
     const filtered = items.filter(item => {
       const text = [
-        item.title, item.description,
-        item.genre, item.language
+        item.title,
+        item.description,
+        item.genre,
+        item.language
       ].join(" ").toLowerCase();
 
       return !query || text.includes(query);
     });
 
     const isExpanded = !!expanded[category];
-    const visible = isExpanded ? filtered : filtered.slice(0, 8);
+
+    const visible = isExpanded
+      ? filtered
+      : filtered.slice(0, 8);
 
     element.innerHTML = visible.length
       ? visible.map(card).join("")
       : `<div class="empty">${
-          query ? "No matching titles found." : "No content available yet."
+          query
+            ? "No matching titles found."
+            : "No content available yet."
         }</div>`;
 
     const button = document.querySelector(
@@ -179,40 +252,59 @@
 
     if (button) {
       button.hidden = filtered.length <= 8;
-      button.textContent = isExpanded ? "Show less ↑" : "View all →";
+
+      button.textContent = isExpanded
+        ? "Show less ↑"
+        : "View all →";
     }
   }
 
+  /* MY LIST GRID */
+
   function renderMyList() {
     const element = $("myListGrid");
+
     if (!element) return;
 
-    const items = getList().map(findItem).filter(Boolean);
+    const items = getList()
+      .map(findItem)
+      .filter(Boolean);
 
     element.innerHTML = items.length
       ? items.map(card).join("")
       : '<div class="empty">Your saved titles will appear here.</div>';
   }
 
+  /* HERO */
+
   function renderHero() {
     const candidates = [...movies, ...shows]
-      .filter(x => x.backdrop_url || x.poster_url);
+      .filter(item =>
+        item.backdrop_url || item.poster_url
+      );
 
     if (!candidates.length) return;
 
-    const item = candidates[heroIndex % candidates.length];
+    const item = candidates[
+      heroIndex % candidates.length
+    ];
 
     if ($("heroTitle")) {
-      $("heroTitle").textContent = item.title || "Tamilflix";
+      $("heroTitle").textContent =
+        item.title || "Tamilflix";
     }
 
     if ($("heroMeta")) {
       $("heroMeta").textContent = [
-        item.year, item.language, item.genre || item.category
+        item.year,
+        item.language,
+        item.genre || item.category
       ].filter(Boolean).join(" · ");
     }
 
-    const backdrop = safeURL(item.backdrop_url || item.poster_url);
+    const backdrop = safeURL(
+      item.backdrop_url || item.poster_url
+    );
 
     if ($("hero") && backdrop) {
       $("hero").style.backgroundImage =
@@ -220,91 +312,174 @@
     }
 
     if ($("heroInfo")) {
-      $("heroInfo").onclick = () => openDetails(item);
+      $("heroInfo").onclick = () =>
+        openDetails(item);
     }
   }
 
+  /* MAIN RENDER */
+
   function renderAll() {
-    renderGrid("movieGrid", movies, "movies");
-    renderGrid("marvelGrid", shows.filter(x => x.category === "marvel"), "marvel");
-    renderGrid("animeGrid", shows.filter(x => x.category === "anime"), "anime");
-    renderGrid("seriesGrid", shows.filter(x => x.category === "series"), "series");
-    renderGrid("bigbossGrid", shows.filter(x => x.category === "bigboss"), "bigboss");
+    renderGrid(
+      "movieGrid",
+      movies,
+      "movies"
+    );
+
+    renderGrid(
+      "marvelGrid",
+      shows.filter(item =>
+        item.category === "marvel"
+      ),
+      "marvel"
+    );
+
+    renderGrid(
+      "animeGrid",
+      shows.filter(item =>
+        item.category === "anime"
+      ),
+      "anime"
+    );
+
+    renderGrid(
+      "seriesGrid",
+      shows.filter(item =>
+        item.category === "series"
+      ),
+      "series"
+    );
+
+    renderGrid(
+      "bigbossGrid",
+      shows.filter(item =>
+        item.category === "bigboss"
+      ),
+      "bigboss"
+    );
+
     renderMyList();
     renderHero();
     populateShowSelect();
-        }
-                       
+  }
+
   /* DETAILS */
 
   function openDetails(item) {
     if (!item || !$("detailsContent")) return;
 
     const poster = safeURL(item.poster_url);
-    const title = escapeHTML(item.title || "Untitled");
+    const title = escapeHTML(
+      item.title || "Untitled"
+    );
+
     const isShow = item.kind === "show";
 
     $("detailsContent").innerHTML = `
       <div class="detail-layout">
-        ${poster ? `<img src="${escapeHTML(poster)}" alt="${title}">` : ""}
+
+        ${poster
+          ? `<img src="${escapeHTML(poster)}" alt="${title}">`
+          : ""}
+
         <div>
           <h2>${title}</h2>
-          <p>${escapeHTML(item.year || "")}
-            ${item.language ? " · " + escapeHTML(item.language) : ""}
-            ${item.genre ? " · " + escapeHTML(item.genre) : ""}
+
+          <p>
+            ${escapeHTML(item.year || "")}
+            ${item.language
+              ? " · " + escapeHTML(item.language)
+              : ""}
+            ${item.genre
+              ? " · " + escapeHTML(item.genre)
+              : ""}
           </p>
-          <p>${escapeHTML(item.description || "No description available.")}</p>
+
+          <p>
+            ${escapeHTML(
+              item.description ||
+              "No description available."
+            )}
+          </p>
+
           ${!isShow && item.video_url
             ? '<button class="btn btn-primary" id="detailsPlayBtn">▶ Play</button>'
             : ""}
-          <button class="btn btn-ghost" id="detailsSaveBtn">
-            ${isSaved(item) ? "♥ Remove from My List" : "♡ My List"}
+
+          <button class="btn btn-ghost"
+            id="detailsSaveBtn">
+            ${isSaved(item)
+              ? "♥ Remove from My List"
+              : "♡ My List"}
           </button>
-          ${isShow ? '<div id="episodeList"></div>' : ""}
+
+          ${isShow
+            ? '<div id="episodeList"></div>'
+            : ""}
+
         </div>
       </div>
     `;
 
-    $("detailsPlayBtn")?.addEventListener("click", () =>
-      playVideo(item.video_url, item.title)
+    $("detailsPlayBtn")?.addEventListener(
+      "click",
+      () => playVideo(
+        item.video_url,
+        item.title
+      )
     );
 
-    $("detailsSaveBtn")?.addEventListener("click", () => {
-      toggleSaved(item);
-      openDetails(item);
-    });
+    $("detailsSaveBtn")?.addEventListener(
+      "click",
+      () => {
+        toggleSaved(item);
+        openDetails(item);
+      }
+    );
 
     showModal("detailsModal");
 
-    if (isShow) renderEpisodes(item);
+    if (isShow) {
+      renderEpisodes(item);
+    }
   }
+
+  /* VIDEO PLAYER */
 
   function playVideo(url, title) {
     const videoURL = safeURL(url);
+
     if (!videoURL) {
       alert("Video URL is not available.");
       return;
     }
 
     const video = $("videoPlayer");
+
     if (!video) return;
 
     if ($("playerCaption")) {
-      $("playerCaption").textContent = title || "Tamilflix";
+      $("playerCaption").textContent =
+        title || "Tamilflix";
     }
 
     video.src = videoURL;
     video.load();
+
     showModal("playerModal");
 
     video.play().catch(() => {});
   }
 
+  /* EPISODES */
+
   async function renderEpisodes(show) {
     const container = $("episodeList");
+
     if (!container || !client) return;
 
-    container.innerHTML = "<p>Loading episodes...</p>";
+    container.innerHTML =
+      "<p>Loading episodes...</p>";
 
     try {
       const { data, error } = await client
@@ -317,7 +492,8 @@
       if (error) throw error;
 
       if (!data?.length) {
-        container.innerHTML = "<p>No episodes available yet.</p>";
+        container.innerHTML =
+          "<p>No episodes available yet.</p>";
         return;
       }
 
@@ -325,71 +501,127 @@
 
       data.forEach(ep => {
         const season = ep.season_number || 1;
-        (groups[season] ||= []).push(ep);
+
+        if (!groups[season]) {
+          groups[season] = [];
+        }
+
+        groups[season].push(ep);
       });
 
-      container.innerHTML = Object.entries(groups).map(([season, list]) => `
-        <div class="season-block">
-          <h3>Season ${escapeHTML(season)}</h3>
-          ${list.map(ep => `
-            <div class="episode-row">
-              ${ep.thumbnail_url
-                ? `<img src="${escapeHTML(safeURL(ep.thumbnail_url))}" alt="">`
-                : ""}
-              <button class="btn btn-ghost"
-                data-episode-id="${escapeHTML(ep.id)}">
-                Episode ${escapeHTML(ep.episode_number || "")} -
-                ${escapeHTML(ep.episode_title || "Untitled")} ▶
-              </button>
+      container.innerHTML =
+        Object.entries(groups).map(
+          ([season, list]) => `
+            <div class="season-block">
+
+              <h3>
+                Season ${escapeHTML(season)}
+              </h3>
+
+              ${list.map(ep => `
+                <div class="episode-row">
+
+                  ${ep.thumbnail_url
+                    ? `<img src="${escapeHTML(
+                        safeURL(ep.thumbnail_url)
+                      )}" alt="">`
+                    : ""}
+
+                  <button class="btn btn-ghost"
+                    data-episode-id="${escapeHTML(ep.id)}">
+
+                    Episode ${escapeHTML(
+                      ep.episode_number || ""
+                    )}
+
+                    -
+                    ${escapeHTML(
+                      ep.episode_title || "Untitled"
+                    )}
+
+                    ▶
+                  </button>
+
+                </div>
+              `).join("")}
+
             </div>
-          `).join("")}
-        </div>
-      `).join("");
+          `
+        ).join("");
 
-      container.querySelectorAll("[data-episode-id]").forEach(button => {
-        button.addEventListener("click", () => {
-          const ep = data.find(x =>
-            String(x.id) === button.dataset.episodeId
+      container
+        .querySelectorAll("[data-episode-id]")
+        .forEach(button => {
+
+          button.addEventListener(
+            "click",
+            () => {
+
+              const ep = data.find(item =>
+                String(item.id) ===
+                button.dataset.episodeId
+              );
+
+              if (ep) {
+                playVideo(
+                  ep.video_url,
+                  ep.episode_title
+                );
+              }
+            }
           );
-          if (ep) playVideo(ep.video_url, ep.episode_title);
         });
-      });
 
     } catch (error) {
       console.error("Episode error:", error);
-      container.innerHTML = "<p>Episodes could not be loaded.</p>";
+
+      container.innerHTML =
+        "<p>Episodes could not be loaded.</p>";
     }
   }
 
-  /* LOAD CONTENT */
+  /* LOAD MOVIES */
 
   async function loadMovies() {
     const { data, error } = await client
       .from(TABLES.movies)
       .select("*")
       .eq("is_active", true)
-      .order("created_at", { ascending: false });
+      .order("created_at", {
+        ascending: false
+      });
 
     if (error) throw error;
 
     movies = (data || []).map(normaliseMovie);
   }
 
+  /* LOAD SHOWS */
+
   async function loadShows() {
     try {
       const { data, error } = await client
         .from(TABLES.shows)
         .select("*")
-        .order("created_at", { ascending: false });
+        .order("created_at", {
+          ascending: false
+        });
 
       if (error) throw error;
 
       shows = (data || []).map(normaliseShow);
+
     } catch (error) {
-      console.warn("Shows unavailable:", error.message);
+      console.warn(
+        "Shows unavailable:",
+        error.message
+      );
+
       shows = [];
     }
   }
+
+  /* LOAD CONTENT */
 
   async function loadContent() {
     if (!client) return;
@@ -397,39 +629,59 @@
     try {
       await loadMovies();
       await loadShows();
+
       renderAll();
+
     } catch (error) {
-      console.error("Content loading:", error);
+      console.error(
+        "Content loading:",
+        error
+      );
 
       if ($("movieGrid")) {
         $("movieGrid").innerHTML =
           '<div class="empty">Movies could not be loaded. Check Supabase table columns and permissions.</div>';
       }
     }
-  }
+      }
+         
+  /* ==========================================
+     PART 2 / 3
+     VIEW ALL + SEARCH + AUTH + ADMIN
+     + PUBLIC MOVIE REQUEST
+  ========================================== */
 
   /* VIEW ALL */
 
   function setupViewAll() {
-    document.querySelectorAll("[data-viewall]").forEach(button => {
-      button.addEventListener("click", () => {
-        const category = button.dataset.viewall;
-        expanded[category] = !expanded[category];
-        renderAll();
+    document.querySelectorAll("[data-viewall]")
+      .forEach(button => {
+        button.addEventListener("click", () => {
+          const category = button.dataset.viewall;
+
+          if (!category) return;
+
+          expanded[category] = !expanded[category];
+
+          renderAll();
+        });
       });
-    });
   }
 
   /* SEARCH */
 
   function setupSearch() {
-    $("searchInput")?.addEventListener("input", renderAll);
+    $("searchInput")?.addEventListener(
+      "input",
+      renderAll
+    );
   }
 
   /* SHOW SELECT */
 
   function populateShowSelect() {
     const select = $("showSelect");
+
     if (!select) return;
 
     select.innerHTML = `
@@ -442,18 +694,22 @@
     `;
   }
 
-  /* AUTH */
-
-    /* AUTH */
+  /* AUTHENTICATION */
 
   function openAuth(mode) {
     const form = $("authForm");
+
     if (!form) return;
 
     form.dataset.mode = mode;
 
-    if ($("authTitle")) $("authTitle").textContent = mode;
-    if ($("authMessage")) $("authMessage").textContent = "";
+    if ($("authTitle")) {
+      $("authTitle").textContent = mode;
+    }
+
+    if ($("authMessage")) {
+      $("authMessage").textContent = "";
+    }
 
     showModal("authModal");
   }
@@ -461,22 +717,53 @@
   async function updateAuthUI() {
     if (!client) return;
 
-    const { data, error } = await client.auth.getUser();
+    try {
+      const { data, error } =
+        await client.auth.getUser();
 
-    currentUser = error ? null : data?.user || null;
+      currentUser = error
+        ? null
+        : data?.user || null;
 
-    const loggedIn = !!currentUser;
+      const loggedIn = !!currentUser;
 
-    if ($("userEmail")) {
-      $("userEmail").textContent = currentUser?.email || "";
-      $("userEmail").classList.toggle("hidden", !loggedIn);
+      if ($("userEmail")) {
+        $("userEmail").textContent =
+          currentUser?.email || "";
+
+        $("userEmail").classList.toggle(
+          "hidden",
+          !loggedIn
+        );
+      }
+
+      $("loginBtn")?.classList.toggle(
+        "hidden",
+        loggedIn
+      );
+
+      $("registerBtn")?.classList.toggle(
+        "hidden",
+        loggedIn
+      );
+
+      $("logoutBtn")?.classList.toggle(
+        "hidden",
+        !loggedIn
+      );
+
+      await checkAdmin();
+
+    } catch (error) {
+      console.error(
+        "Auth UI error:",
+        error
+      );
+
+      currentUser = null;
+
+      $("adminBtn")?.classList.add("hidden");
     }
-
-    $("loginBtn")?.classList.toggle("hidden", loggedIn);
-    $("registerBtn")?.classList.toggle("hidden", loggedIn);
-    $("logoutBtn")?.classList.toggle("hidden", !loggedIn);
-
-    await checkAdmin();
   }
 
   async function authSubmit(event) {
@@ -484,28 +771,57 @@
 
     const form = $("authForm");
     const message = $("authMessage");
-    const button = form?.querySelector('[type="submit"]');
 
-    if (!client) {
-      if (message) message.textContent = "Supabase connection failed.";
+    if (!client || !form) return;
+
+    const button = form.querySelector(
+      '[type="submit"]'
+    );
+
+    const email =
+      $("authEmail")?.value.trim();
+
+    const password =
+      $("authPassword")?.value;
+
+    const mode = form.dataset.mode;
+
+    if (!email || !password) {
+      if (message) {
+        message.textContent =
+          "Enter your email and password.";
+      }
+
       return;
     }
-
-    const email = $("authEmail")?.value.trim();
-    const password = $("authPassword")?.value;
-    const mode = form.dataset.mode;
 
     if (button) {
       button.disabled = true;
       button.textContent = "Please wait...";
     }
 
-    try {
-      const result = mode === "Register"
-        ? await client.auth.signUp({ email, password })
-        : await client.auth.signInWithPassword({ email, password });
+    if (message) {
+      message.textContent = "";
+    }
 
-      if (result.error) throw result.error;
+    try {
+      let result;
+
+      if (mode === "Register") {
+        result = await client.auth.signUp({
+          email,
+          password
+        });
+      } else {
+        result = await client.auth.signInWithPassword({
+          email,
+          password
+        });
+      }
+
+      if (result.error) {
+        throw result.error;
+      }
 
       if (mode === "Register") {
         if (message) {
@@ -514,11 +830,16 @@
         }
       } else {
         hideModal("authModal");
+
         await updateAuthUI();
       }
 
     } catch (error) {
-      if (message) message.textContent = error.message;
+      if (message) {
+        message.textContent =
+          error.message || "Authentication failed.";
+      }
+
     } finally {
       if (button) {
         button.disabled = false;
@@ -527,33 +848,39 @@
     }
   }
 
-  /* ADMIN CHECK */
   async function logout() {
     if (!client) return;
 
-    const { error } = await client.auth.signOut();
+    try {
+      const { error } =
+        await client.auth.signOut();
 
-    if (error) {
-      alert(error.message);
-      return;
+      if (error) throw error;
+
+      currentUser = null;
+
+      await updateAuthUI();
+
+    } catch (error) {
+      alert("Logout failed: " + error.message);
     }
-
-    currentUser = null;
-    await updateAuthUI();
   }
+
+  /* ADMIN VERIFICATION */
+
   async function checkAdmin() {
     const button = $("adminBtn");
 
-    if (!button || !client || !currentUser) {
-      button?.classList.add("hidden");
-      return;
-    }
+    if (!button) return;
+
+    button.classList.add("hidden");
+
+    if (!client || !currentUser) return;
 
     if (
       currentUser.email?.toLowerCase() !==
       "jayantatilan@gmail.com"
     ) {
-      button.classList.add("hidden");
       return;
     }
 
@@ -566,162 +893,50 @@
 
       if (error) throw error;
 
-      button.classList.toggle("hidden", !data);
+      button.classList.toggle(
+        "hidden",
+        !data
+      );
 
     } catch (error) {
-      console.error("Admin check error:", error);
+      console.error(
+        "Admin verification error:",
+        error
+      );
+
       button.classList.add("hidden");
     }
   }
-  async function authSubmit(event) {
-    event.preventDefault();
-
-    const form = $("authForm");
-    const message = $("authMessage");
-    const button = form?.querySelector('[type="submit"]');
-
-    if (!client) {
-      if (message) message.textContent = "Supabase connection failed.";
-      return;
-    }
-
-    const email = $("authEmail")?.value.trim();
-    const password = $("authPassword")?.value;
-    const mode = form.dataset.mode;
-
-    if (button) {
-      button.disabled = true;
-      button.textContent = "Please wait...";
-    }
-
-    try {
-      const result = mode === "Register"
-        ? await client.auth.signUp({ email, password })
-        : await client.auth.signInWithPassword({ email, password });
-
-      if (result.error) throw result.error;
-
-      if (mode === "Register") {
-        if (message) {
-          message.textContent =
-            "Account created. Check your email if confirmation is required.";
-        }
-      } else {
-        hideModal("authModal");
-        await updateAuthUI();
-      }
-
-    } catch (error) {
-      if (message) message.textContent = error.message;
-    } finally {
-      if (button) {
-        button.disabled = false;
-        button.textContent = "Continue";
-      }
-    }
-  }
-
-async function checkAdmin() {
-  const button = $("adminBtn");
-
-  if (!button || !client || !currentUser) {
-    button?.classList.add("hidden");
-    return;
-  }
-
-  try {
-    console.log("Logged in email:", currentUser.email);
-    console.log("Logged in user ID:", currentUser.id);
-
-    const { data, error } = await client
-      .from("tamilflix_admins")
-      .select("user_id")
-      .eq("user_id", currentUser.id)
-      .maybeSingle();
-
-    console.log("Admin data:", data);
-    console.log("Admin error:", error);
-
-    if (error) {
-      console.error("Admin check failed:", error.message);
-    }
-
-    const isAdmin =
-      currentUser.email?.toLowerCase() === "jayantatilan@gmail.com" &&
-      !!data &&
-      !error;
-
-    button.classList.toggle("hidden", !isAdmin);
-
-  } catch (error) {
-    console.error("Admin error:", error);
-    button.classList.add("hidden");
-  }
-}
-  async function logout() {
-    if (!client) return;
-
-    const { error } = await client.auth.signOut();
-
-    if (error) {
-      alert(error.message);
-      return;
-    }
-
-    currentUser = null;
-    await updateAuthUI();
-  }
-    
-  /* ADMIN CHECK */
-async function checkAdmin() {
-  const button = $("adminBtn");
-
-  if (!button || !currentUser || !client) {
-    button?.classList.add("hidden");
-    return;
-  }
-
-  const adminEmail = "jayantatilan@gmail.com";
-
-  if (
-    currentUser.email?.toLowerCase() !== adminEmail
-  ) {
-    button.classList.add("hidden");
-    return;
-  }
-
-  try {
-    const { data, error } = await client
-      .from(TABLES.admins)
-      .select("user_id")
-      .eq("user_id", currentUser.id)
-      .maybeSingle();
-
-    button.classList.toggle("hidden", !!error || !data);
-
-  } catch (error) {
-    console.error("Admin check error:", error);
-    button.classList.add("hidden");
-  }
-}
 
   function openAdmin() {
     if (!currentUser) {
       alert("Please login first.");
       return;
     }
+
+    if ($("adminBtn")?.classList.contains("hidden")) {
+      alert("Admin access denied.");
+      return;
+    }
+
     showModal("adminModal");
   }
 
-  /* ADMIN FORMS */
+  /* ADMIN MOVIE FORM */
 
   async function addMovie(event) {
     event.preventDefault();
+
     if (!client || !currentUser) return;
 
     const form = $("movieForm");
+
+    if (!form) return;
+
     const get = name =>
-      form.querySelector(`[name="${name}"]`)?.value.trim() || "";
+      form.querySelector(
+        `[name="${name}"]`
+      )?.value.trim() || "";
 
     const movie = {
       title: get("title"),
@@ -736,25 +951,47 @@ async function checkAdmin() {
       is_active: true
     };
 
+    if (!movie.title) {
+      alert("Enter movie title.");
+      return;
+    }
+
     try {
-      const { error } = await client.from(TABLES.movies).insert(movie);
+      const { error } = await client
+        .from(TABLES.movies)
+        .insert(movie);
+
       if (error) throw error;
 
       alert("Movie added successfully!");
+
       form.reset();
+
       await loadContent();
+
     } catch (error) {
-      alert("Movie could not be added: " + error.message);
+      alert(
+        "Movie could not be added: " +
+        error.message
+      );
     }
   }
 
+  /* ADMIN SHOW FORM */
+
   async function addShow(event) {
     event.preventDefault();
+
     if (!client || !currentUser) return;
 
     const form = $("showForm");
+
+    if (!form) return;
+
     const get = name =>
-      form.querySelector(`[name="${name}"]`)?.value.trim() || "";
+      form.querySelector(
+        `[name="${name}"]`
+      )?.value.trim() || "";
 
     const show = {
       title: get("title"),
@@ -766,35 +1003,64 @@ async function checkAdmin() {
       description: get("description")
     };
 
+    if (!show.title) {
+      alert("Enter show title.");
+      return;
+    }
+
     try {
-      const { error } = await client.from(TABLES.shows).insert(show);
+      const { error } = await client
+        .from(TABLES.shows)
+        .insert(show);
+
       if (error) throw error;
 
       alert("Show added successfully!");
+
       form.reset();
+
       await loadContent();
+
     } catch (error) {
-      alert("Show could not be added: " + error.message);
+      alert(
+        "Show could not be added: " +
+        error.message
+      );
     }
   }
 
+  /* ADMIN EPISODE FORM */
+
   async function addEpisode(event) {
     event.preventDefault();
+
     if (!client || !currentUser) return;
 
     const form = $("episodeForm");
+
+    if (!form) return;
+
     const get = name =>
-      form.querySelector(`[name="${name}"]`)?.value.trim() || "";
+      form.querySelector(
+        `[name="${name}"]`
+      )?.value.trim() || "";
 
     const episode = {
       show_id: get("show_id"),
-      season_number: Number(get("season_number")) || 1,
+      season_number:
+        Number(get("season_number")) || 1,
       season_title: get("season_title"),
-      episode_number: Number(get("episode_number")) || 1,
+      episode_number:
+        Number(get("episode_number")) || 1,
       episode_title: get("episode_title"),
       thumbnail_url: get("thumbnail_url"),
       video_url: get("video_url")
     };
+
+    if (!episode.show_id || !episode.video_url) {
+      alert("Select a show and enter video URL.");
+      return;
+    }
 
     try {
       const { error } = await client
@@ -804,95 +1070,262 @@ async function checkAdmin() {
       if (error) throw error;
 
       alert("Episode added successfully!");
+
       form.reset();
+
     } catch (error) {
-      alert("Episode could not be added: " + error.message);
+      alert(
+        "Episode could not be added: " +
+        error.message
+      );
     }
   }
+
+  /* PUBLIC MOVIE REQUEST */
+
+  async function submitMovieRequest(event) {
+    event.preventDefault();
+
+    const form = $("movieRequestForm");
+    const message = $("movieRequestMessage");
+
+    if (!client || !form) return;
+
+    const title = $(
+      "requestMovieTitle"
+    )?.value.trim();
+
+    const language = $(
+      "requestMovieLanguage"
+    )?.value.trim() || "";
+
+    const details = $(
+      "requestMovieDetails"
+    )?.value.trim() || "";
+
+    if (!title) {
+      if (message) {
+        message.textContent =
+          "Please enter a movie title.";
+      }
+
+      return;
+    }
+
+    const button = form.querySelector(
+      '[type="submit"]'
+    );
+
+    if (button) {
+      button.disabled = true;
+      button.textContent = "Sending...";
+    }
+
+    if (message) {
+      message.textContent = "";
+    }
+
+    try {
+      const { error } = await client
+        .from(TABLES.requests)
+        .insert({
+          movie_title: title,
+          language: language || null,
+          details: details || null
+        });
+
+      if (error) throw error;
+
+      if (message) {
+        message.textContent =
+          "Your movie request was submitted successfully!";
+      }
+
+      form.reset();
+
+    } catch (error) {
+      console.error(
+        "Movie request error:",
+        error
+      );
+
+      if (message) {
+        message.textContent =
+          "Request could not be submitted. Please try again.";
+      }
+
+    } finally {
+      if (button) {
+        button.disabled = false;
+        button.textContent = "Submit Request";
+      }
+    }
+                }
+        
+  /* ==========================================
+     PART 3 / 3
+     BUTTON EVENTS + NAVIGATION
+     + INITIALIZATION
+  ========================================== */
 
   /* BUTTON EVENTS */
 
   function setupButtons() {
-    $("loginBtn")?.addEventListener("click", () => openAuth("Login"));
-    $("registerBtn")?.addEventListener("click", () => openAuth("Register"));
-    $("logoutBtn")?.addEventListener("click", logout);
-    $("adminBtn")?.addEventListener("click", openAdmin);
+    $("loginBtn")?.addEventListener(
+      "click",
+      () => openAuth("Login")
+    );
 
-    $("authForm")?.addEventListener("submit", authSubmit);
-    $("movieForm")?.addEventListener("submit", addMovie);
-    $("showForm")?.addEventListener("submit", addShow);
-    $("episodeForm")?.addEventListener("submit", addEpisode);
+    $("registerBtn")?.addEventListener(
+      "click",
+      () => openAuth("Register")
+    );
 
-    document.querySelectorAll("[data-close]").forEach(button => {
-      button.addEventListener("click", () =>
-        hideModal(button.dataset.close)
-      );
-    });
+    $("logoutBtn")?.addEventListener(
+      "click",
+      logout
+    );
+
+    $("adminBtn")?.addEventListener(
+      "click",
+      openAdmin
+    );
+
+    $("authForm")?.addEventListener(
+      "submit",
+      authSubmit
+    );
+
+    $("movieForm")?.addEventListener(
+      "submit",
+      addMovie
+    );
+
+    $("showForm")?.addEventListener(
+      "submit",
+      addShow
+    );
+
+    $("episodeForm")?.addEventListener(
+      "submit",
+      addEpisode
+    );
+
+    $("movieRequestForm")?.addEventListener(
+      "submit",
+      submitMovieRequest
+    );
+
+    document.querySelectorAll("[data-close]")
+      .forEach(button => {
+        button.addEventListener("click", () => {
+          hideModal(button.dataset.close);
+        });
+      });
 
     document.addEventListener("click", event => {
-      const openButton = event.target.closest("[data-open-item]");
+      const target = event.target;
+
+      if (!(target instanceof Element)) return;
+
+      const openButton = target.closest(
+        "[data-open-item]"
+      );
 
       if (openButton) {
-        const item = findItem(openButton.dataset.openItem);
+        const item = findItem(
+          openButton.dataset.openItem
+        );
+
         if (item) openDetails(item);
+
         return;
       }
 
-      const saveButton = event.target.closest("[data-save-item]");
+      const saveButton = target.closest(
+        "[data-save-item]"
+      );
 
       if (saveButton) {
-        const item = findItem(saveButton.dataset.saveItem);
+        const item = findItem(
+          saveButton.dataset.saveItem
+        );
+
         if (item) toggleSaved(item);
       }
     });
   }
 
-  /* MOBILE MENU */
+  /* MOBILE NAVIGATION */
 
   function setupNavigation() {
     $("menuBtn")?.addEventListener("click", () => {
       $("nav")?.classList.toggle("open");
     });
 
-    $("nav")?.querySelectorAll("a").forEach(link => {
-      link.addEventListener("click", () => {
-        $("nav")?.classList.remove("open");
+    $("nav")?.querySelectorAll("a")
+      .forEach(link => {
+        link.addEventListener("click", () => {
+          $("nav")?.classList.remove("open");
+        });
       });
-    });
   }
 
   /* ADMIN TABS */
 
   function setupAdminTabs() {
-    document.querySelectorAll("[data-tab]").forEach(button => {
-      button.addEventListener("click", () => {
-        document.querySelectorAll("[data-tab]").forEach(tab =>
-          tab.classList.toggle("active", tab === button)
-        );
+    document.querySelectorAll("[data-tab]")
+      .forEach(button => {
+        button.addEventListener("click", () => {
 
-        ["movieForm", "showForm", "episodeForm"].forEach(id => {
-          $(id)?.classList.toggle("hidden", id !== button.dataset.tab);
+          document.querySelectorAll("[data-tab]")
+            .forEach(tab => {
+              tab.classList.toggle(
+                "active",
+                tab === button
+              );
+            });
+
+          [
+            "movieForm",
+            "showForm",
+            "episodeForm"
+          ].forEach(id => {
+            $(id)?.classList.toggle(
+              "hidden",
+              id !== button.dataset.tab
+            );
+          });
         });
       });
-    });
   }
 
-  /* INITIALIZATION */
+  /* SUPABASE INITIALIZATION */
 
   async function initialize() {
     try {
       if (!window.supabase) {
-        throw new Error("Supabase library not loaded.");
+        throw new Error(
+          "Supabase library not loaded."
+        );
       }
 
-      const url = window.TAMILFLIX_SUPABASE_URL;
-      const key = window.TAMILFLIX_SUPABASE_ANON_KEY;
+      const url =
+        window.TAMILFLIX_SUPABASE_URL;
+
+      const key =
+        window.TAMILFLIX_SUPABASE_ANON_KEY;
 
       if (!url || !key) {
-        throw new Error("Supabase configuration missing.");
+        throw new Error(
+          "Supabase configuration missing."
+        );
       }
 
-      client = window.supabase.createClient(url, key);
+      client = window.supabase.createClient(
+        url,
+        key
+      );
 
       setupButtons();
       setupSearch();
@@ -901,34 +1334,49 @@ async function checkAdmin() {
       setupAdminTabs();
 
       await updateAuthUI();
+
       await loadContent();
 
-            client.auth.onAuthStateChange(() => {
-        setTimeout(() => {
-          updateAuthUI();
-        }, 0);
-      });
-  setTimeout(async () => {
-    currentUser = session?.user || null;
+      client.auth.onAuthStateChange(
+        (_event, session) => {
+          setTimeout(async () => {
+            currentUser = session?.user || null;
 
-    await updateAuthUI();
-    await checkAdmin();
-  }, 0);
-});
+            await updateAuthUI();
+          }, 0);
+        }
+      );
 
-      console.log("Tamilflix initialized successfully.");
+      console.log(
+        "Tamilflix initialized successfully."
+      );
 
     } catch (error) {
-      console.error("Tamilflix initialization error:", error);
+      console.error(
+        "Tamilflix initialization error:",
+        error
+      );
 
       if ($("movieGrid")) {
         $("movieGrid").innerHTML =
-          `<div class="empty">${escapeHTML(error.message)}</div>`;
+          `<div class="empty">${escapeHTML(
+            error.message
+          )}</div>`;
       }
     }
   }
 
-  document.addEventListener("DOMContentLoaded", initialize);
+  /* START APPLICATION */
+
+  if (document.readyState === "loading") {
+    document.addEventListener(
+      "DOMContentLoaded",
+      initialize,
+      { once: true }
+    );
+  } else {
+    initialize();
+  }
 
 })();
-    
+                              
