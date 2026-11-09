@@ -528,7 +528,19 @@
   }
 
   /* ADMIN CHECK */
+  async function logout() {
+    if (!client) return;
 
+    const { error } = await client.auth.signOut();
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    currentUser = null;
+    await updateAuthUI();
+  }
   async function checkAdmin() {
     const button = $("adminBtn");
 
