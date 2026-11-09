@@ -1298,35 +1298,39 @@ function startHeroSlider() {
 
   /* ADMIN TABS */
 
-  function setupAdminTabs() {
-    document.querySelectorAll("[data-tab]")
-      .forEach(button => {
-        button.addEventListener("click", () => {
+function setupAdminTabs() {
+  document.querySelectorAll("[data-tab]")
+    .forEach(button => {
+      button.addEventListener("click", () => {
 
-          document.querySelectorAll("[data-tab]")
-            .forEach(tab => {
-              tab.classList.toggle(
-                "active",
-                tab === button
-              );
-            });
-
-          [
-            "movieForm",
-            "showForm",
-            "episodeForm"
-          ].forEach(id => {
-            $(id)?.classList.toggle(
-              "hidden",
-              id !== button.dataset.tab
+        document.querySelectorAll("[data-tab]")
+          .forEach(tab => {
+            tab.classList.toggle(
+              "active",
+              tab === button
             );
           });
+
+        [
+          "movieForm",
+          "showForm",
+          "episodeForm",
+          "manageForm"
+        ].forEach(id => {
+          $(id)?.classList.toggle(
+            "hidden",
+            id !== button.dataset.tab
+          );
         });
+
+        if (button.dataset.tab === "manageForm") {
+          populateDeleteOptions();
+        }
       });
-  }
+    });
 
-  /* SUPABASE INITIALIZATION */
-
+  setupDeleteManagement();
+}
   async function initialize() {
     try {
       if (!window.supabase) {
