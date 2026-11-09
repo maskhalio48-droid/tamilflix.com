@@ -1,4 +1,3 @@
-
 /* TAMILFLIX - APP.JS */
 (() => {
   "use strict";
@@ -540,27 +539,37 @@
   }
     
   /* ADMIN CHECK */
+async function checkAdmin() {
+  const button = $("adminBtn");
 
-  async function checkAdmin() {
-    const button = $("adminBtn");
-
-    if (!button || !currentUser || !client) {
-      button?.classList.add("hidden");
-      return;
-    }
-
-    try {
-      const { data, error } = await client
-        .from(TABLES.admins)
-        .select("user_id")
-        .eq("user_id", currentUser.id)
-        .maybeSingle();
-
-      button.classList.toggle("hidden", !!error || !data);
-    } catch {
-      button.classList.add("hidden");
-    }
+  if (!button || !currentUser || !client) {
+    button?.classList.add("hidden");
+    return;
   }
+
+  const adminEmail = "jayantatilan@gmail.com";
+
+  if (
+    currentUser.email?.toLowerCase() !== adminEmail
+  ) {
+    button.classList.add("hidden");
+    return;
+  }
+
+  try {
+    const { data, error } = await client
+      .from(TABLES.admins)
+      .select("user_id")
+      .eq("user_id", currentUser.id)
+      .maybeSingle();
+
+    button.classList.toggle("hidden", !!error || !data);
+
+  } catch (error) {
+    console.error("Admin check error:", error);
+    button.classList.add("hidden");
+  }
+}
 
   function openAdmin() {
     if (!currentUser) {
