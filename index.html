@@ -105,10 +105,23 @@
     <h2>Admin Dashboard</h2>
     <p class="muted">Add content using authorised poster and video URLs. Existing uploaded content is not deleted.</p>
     <div class="admin-tabs">
-      <button class="tab active" data-tab="movieForm">Add Movie</button>
-      <button class="tab" data-tab="showForm">Add Show</button>
-      <button class="tab" data-tab="episodeForm">Add Season / Episode</button>
-    </div>
+      <div class="admin-tabs">
+  <button class="tab active" data-tab="movieForm">
+    Add Movie
+  </button>
+
+  <button class="tab" data-tab="showForm">
+    Add Show
+  </button>
+
+  <button class="tab" data-tab="episodeForm">
+    Add Season / Episode
+  </button>
+
+  <button class="tab" data-tab="manageForm">
+    Manage Content
+  </button>
+</div> </div>
     <form id="movieForm" class="admin-form">
       <h3>Movie details</h3>
       <input name="title" placeholder="Movie title" required>
