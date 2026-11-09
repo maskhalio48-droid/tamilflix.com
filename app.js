@@ -891,7 +891,11 @@ async function checkAdmin() {
       await updateAuthUI();
       await loadContent();
 
-      client.auth.onAuthStateChange((_event, session) => {
+            client.auth.onAuthStateChange(() => {
+        setTimeout(() => {
+          updateAuthUI();
+        }, 0);
+      });
   setTimeout(async () => {
     currentUser = session?.user || null;
 
