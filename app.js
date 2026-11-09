@@ -316,7 +316,26 @@
         openDetails(item);
     }
   }
+/* HERO AUTO SLIDER */
 
+let heroTimer = null;
+
+function startHeroSlider() {
+  if (heroTimer) {
+    clearInterval(heroTimer);
+  }
+
+  heroTimer = setInterval(() => {
+    const candidates = [...movies, ...shows]
+      .filter(item => item.backdrop_url || item.poster_url);
+
+    if (candidates.length <= 1) return;
+
+    heroIndex = (heroIndex + 1) % candidates.length;
+
+    renderHero();
+  }, 5000);
+       }
   /* MAIN RENDER */
 
   function renderAll() {
