@@ -386,6 +386,7 @@ function startHeroSlider() {
     renderMyList();
     renderHero();
     populateShowSelect();
+  populateDeleteOptions();
   }
 
   /* DETAILS */
