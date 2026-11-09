@@ -444,6 +444,8 @@
 
   /* AUTH */
 
+    /* AUTH */
+
   function openAuth(mode) {
     const form = $("authForm");
     if (!form) return;
@@ -456,6 +458,109 @@
     showModal("authModal");
   }
 
+  async function updateAuthUI() {
+    if (!client) return;
+
+    const { data, error } = await client.auth.getUser();
+
+    currentUser = error ? null : data?.user || null;
+
+    const loggedIn = !!currentUser;
+
+    if ($("userEmail")) {
+      $("userEmail").textContent = currentUser?.email || "";
+      $("userEmail").classList.toggle("hidden", !loggedIn);
+    }
+
+    $("loginBtn")?.classList.toggle("hidden", loggedIn);
+    $("registerBtn")?.classList.toggle("hidden", loggedIn);
+    $("logoutBtn")?.classList.toggle("hidden", !loggedIn);
+
+    await checkAdmin();
+  }
+
+  async function authSubmit(event) {
+    event.preventDefault();
+
+    const form = $("authForm");
+    const message = $("authMessage");
+    const button = form?.querySelector('[type="submit"]');
+
+    if (!client) {
+      if (message) message.textContent = "Supabase connection failed.";
+      return;
+    }
+
+    const email = $("authEmail")?.value.trim();
+    const password = $("authPassword")?.value;
+    const mode = form.dataset.mode;
+
+    if (button) {
+      button.disabled = true;
+      button.textContent = "Please wait...";
+    }
+
+    try {
+      const result = mode === "Register"
+        ? await client.auth.signUp({ email, password })
+        : await client.auth.signInWithPassword({ email, password });
+
+      if (result.error) throw result.error;
+
+      if (mode === "Register") {
+        if (message) {
+          message.textContent =
+            "Account created. Check your email if confirmation is required.";
+        }
+      } else {
+        hideModal("authModal");
+        await updateAuthUI();
+      }
+
+    } catch (error) {
+      if (message) message.textContent = error.message;
+    } finally {
+      if (button) {
+        button.disabled = false;
+        button.textContent = "Continue";
+      }
+    }
+  }
+
+  /* ADMIN CHECK */
+
+  async function checkAdmin() {
+    const button = $("adminBtn");
+
+    if (!button || !client || !currentUser) {
+      button?.classList.add("hidden");
+      return;
+    }
+
+    if (
+      currentUser.email?.toLowerCase() !==
+      "jayantatilan@gmail.com"
+    ) {
+      button.classList.add("hidden");
+      return;
+    }
+
+    try {
+      const { data, error } = await client
+        .from(TABLES.admins)
+        .select("user_id")
+        .eq("user_id", currentUser.id)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      button.classList.toggle("hidden", !data);
+
+    } catch (error) {
+      console.error("Admin check error:", error);
+      button.classList.add("hidden");
+    }
+  }
   async function authSubmit(event) {
     event.preventDefault();
 
