@@ -1331,6 +1331,198 @@ function setupAdminTabs() {
 
   setupDeleteManagement();
 }
+ 
+/* -----------------------------
+   DELETE MANAGEMENT
+----------------------------- */
+
+function populateDeleteOptions() {
+  const movieSelect = $("deleteMovieSelect");
+  const showSelect = $("deleteShowSelect");
+
+  if (movieSelect) {
+    movieSelect.innerHTML =
+      '<option value="">Select a movie</option>' +
+      movies.map(movie => `
+        <option value="${escapeHTML(String(movie.id))}">
+          ${escapeHTML(movie.title || "Untitled")}
+        </option>
+      `).join("");
+  }
+
+  if (showSelect) {
+    showSelect.innerHTML =
+      '<option value="">Select a show</option>' +
+      shows.map(show => `
+        <option value="${escapeHTML(String(show.id))}">
+          ${escapeHTML(show.title || "Untitled")}
+        </option>
+      `).join("");
+  }
+}
+
+function showDeleteMessage(message) {
+  const element = $("deleteMessage");
+
+  if (element) {
+    element.textContent = message;
+  }
+}
+
+function setupDeleteManagement() {
+
+  const movieButton = $("deleteMovieBtn");
+  const showButton = $("deleteShowBtn");
+  const categoryButton = $("deleteCategoryBtn");
+
+  if (movieButton) {
+    movieButton.onclick = deleteMovieItem;
+  }
+
+  if (showButton) {
+    showButton.onclick = deleteShowItem;
+  }
+
+  if (categoryButton) {
+    categoryButton.onclick = deleteCategoryItems;
+  }
+}
+
+
+/* DELETE MOVIE */
+
+async function deleteMovieItem() {
+
+  if (!client || !currentUser) {
+    showDeleteMessage("Please login first.");
+    return;
+  }
+
+  const id = $("deleteMovieSelect")?.value;
+
+  if (!id) {
+    showDeleteMessage("Select a movie first.");
+    return;
+  }
+
+  if (!confirm("Are you sure you want to delete this movie?")) {
+    return;
+  }
+
+  try {
+    const { error } = await client
+      .from(TABLES.movies)
+      .delete()
+      .eq("id", id);
+
+    if (error) throw error;
+
+    showDeleteMessage("Movie deleted successfully!");
+
+    await loadContent();
+
+  } catch (error) {
+    showDeleteMessage(
+      "Movie deletion failed: " + error.message
+    );
+  }
+}
+
+
+/* DELETE SHOW */
+
+async function deleteShowItem() {
+
+  if (!client || !currentUser) {
+    showDeleteMessage("Please login first.");
+    return;
+  }
+
+  const id = $("deleteShowSelect")?.value;
+
+  if (!id) {
+    showDeleteMessage("Select a show first.");
+    return;
+  }
+
+  if (!confirm(
+    "Are you sure you want to delete this show?"
+  )) {
+    return;
+  }
+
+  try {
+    const { error } = await client
+      .from(TABLES.shows)
+      .delete()
+      .eq("id", id);
+
+    if (error) throw error;
+
+    showDeleteMessage("Show deleted successfully!");
+
+    await loadContent();
+
+  } catch (error) {
+    showDeleteMessage(
+      "Show deletion failed: " + error.message
+    );
+  }
+}
+
+
+/* DELETE CATEGORY */
+
+async function deleteCategoryItems() {
+
+  if (!client || !currentUser) {
+    showDeleteMessage("Please login first.");
+    return;
+  }
+
+  const category = $("deleteCategorySelect")?.value;
+
+  if (!category) {
+    showDeleteMessage("Select a category first.");
+    return;
+  }
+
+  const matchingShows = shows.filter(show =>
+    String(show.category || "").toLowerCase() ===
+    category.toLowerCase()
+  );
+
+  if (matchingShows.length === 0) {
+    showDeleteMessage("No shows found in this category.");
+    return;
+  }
+
+  if (!confirm(
+    `Delete all ${matchingShows.length} shows in ${category}?`
+  )) {
+    return;
+  }
+
+  try {
+    const { error } = await client
+      .from(TABLES.shows)
+      .delete()
+      .eq("category", category);
+
+    if (error) throw error;
+
+    showDeleteMessage("Category content deleted successfully!");
+
+    await loadContent();
+
+  } catch (error) {
+    showDeleteMessage(
+      "Category deletion failed: " + error.message
+    );
+  }
+         }
+   
+   /* SUPABASE INITIALIZATION */
   async function initialize() {
     try {
       if (!window.supabase) {
